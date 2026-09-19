@@ -1,0 +1,36 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "apps", "apps", "{34462B62-550A-447E-ADE7-D4AC3507E9DF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SchemeVault.Api", "apps\api\SchemeVault.Api.csproj", "{5C96899B-0F96-4D8A-96D1-A82EE9187E40}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{D2435FDC-7841-477B-A17A-AC5EF888E09F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SchemeVault.Api.Tests", "tests\SchemeVault.Api.Tests\SchemeVault.Api.Tests.csproj", "{B8E9CCC8-8BC4-48A7-B788-F5ACBC099207}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{5C96899B-0F96-4D8A-96D1-A82EE9187E40}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5C96899B-0F96-4D8A-96D1-A82EE9187E40}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5C96899B-0F96-4D8A-96D1-A82EE9187E40}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5C96899B-0F96-4D8A-96D1-A82EE9187E40}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B8E9CCC8-8BC4-48A7-B788-F5ACBC099207}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B8E9CCC8-8BC4-48A7-B788-F5ACBC099207}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B8E9CCC8-8BC4-48A7-B788-F5ACBC099207}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B8E9CCC8-8BC4-48A7-B788-F5ACBC099207}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{5C96899B-0F96-4D8A-96D1-A82EE9187E40} = {34462B62-550A-447E-ADE7-D4AC3507E9DF}
+		{B8E9CCC8-8BC4-48A7-B788-F5ACBC099207} = {D2435FDC-7841-477B-A17A-AC5EF888E09F}
+	EndGlobalSection
+EndGlobal

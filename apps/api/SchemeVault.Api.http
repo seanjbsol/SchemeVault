@@ -1,0 +1,57 @@
+@host = http://localhost:5080
+@token =
+
+### Health
+GET {{host}}/health
+
+### Register (creates a tenant)
+POST {{host}}/api/auth/register
+Content-Type: application/json
+
+{
+  "organisationName": "Humber Civils Ltd",
+  "fullName": "Alex Harper",
+  "email": "alex@humber.test",
+  "password": "TestPassw0rd!"
+}
+
+### Login (demo tenant)
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "demo@schemevault.test",
+  "password": "DemoPassw0rd!"
+}
+
+### Me
+GET {{host}}/api/auth/me
+Authorization: Bearer {{token}}
+
+### Dashboard
+GET {{host}}/api/dashboard
+Authorization: Bearer {{token}}
+
+### Schemes
+GET {{host}}/api/schemes
+Authorization: Bearer {{token}}
+
+### Evidence
+GET {{host}}/api/evidence
+Authorization: Bearer {{token}}
+
+### Create evidence
+POST {{host}}/api/evidence
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "title": "Public Liability insurance certificate",
+  "category": "Insurance",
+  "notes": "Hiscox £10m",
+  "expiresOn": "2027-03-31T00:00:00Z"
+}
+
+### Renewals
+GET {{host}}/api/renewals
+Authorization: Bearer {{token}}
