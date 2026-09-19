@@ -105,6 +105,8 @@ Screens: sign in / register (creates a tenant), home dashboard (traffic lights),
 
 UK English copy throughout.
 
+Preview without running locally: [docs/screenshots](docs/screenshots).
+
 ## API surface (MVP)
 
 All resource routes require `Authorization: Bearer <jwt>` and are scoped to `tenant_id`.
