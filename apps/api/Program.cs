@@ -43,6 +43,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services
     .AddIdentityCore<ApplicationUser>(options =>
     {
+        options.Stores.SchemaVersion = IdentitySchemaVersions.Version3;
         options.User.RequireUniqueEmail = true;
         options.Password.RequiredLength = 8;
         options.Password.RequireNonAlphanumeric = false;

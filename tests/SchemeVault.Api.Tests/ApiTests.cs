@@ -34,7 +34,11 @@ public class ApiFactory : WebApplicationFactory<Program>
         builder.ConfigureServices(services =>
         {
             RemoveDbContext(services);
-            services.AddDbContext<AppDbContext>(options => options.UseSqlite($"Data Source={_dbPath}"));
+            services.AddDbContext<AppDbContext>((sp, options) =>
+            {
+                options.UseSqlite($"Data Source={_dbPath}");
+                options.UseApplicationServiceProvider(sp);
+            });
         });
     }
 
