@@ -21,6 +21,9 @@ export type Dashboard = {
     missingEvidence: number;
     activeSchemes: number;
     evidenceItems: number;
+    openAccidents?: number;
+    overdueEquipment?: number;
+    lostHoursLast12Months?: number;
   };
   upcomingRenewals: Renewal[];
   expiredRenewals: Renewal[];
@@ -50,6 +53,9 @@ export type Evidence = {
   trafficLight: string;
   hasFile: boolean;
   originalFileName?: string | null;
+  contentType?: string | null;
+  fileSizeBytes?: number | null;
+  photoCount?: number;
   createdAt: string;
   updatedAt: string;
 };
@@ -96,6 +102,8 @@ export type Entitlements = {
   plan?: string | null;
   planCode?: string | null;
   isActive: boolean;
+  isPro?: boolean;
+  features?: string[];
   trialEndsAt?: string | null;
   currentPeriodEnd?: string | null;
 };
@@ -103,3 +111,90 @@ export type Entitlements = {
 export type BillingSession = {
   url: string;
 };
+
+export type Photo = {
+  id: string;
+  ownerKind: string;
+  ownerId: string;
+  caption?: string | null;
+  originalFileName: string;
+  contentType: string;
+  fileSizeBytes: number;
+  createdAt: string;
+};
+
+export type Accident = {
+  id: string;
+  occurredOn: string;
+  location: string;
+  severity: string;
+  status: string;
+  description: string;
+  injuredPerson?: string | null;
+  immediateAction?: string | null;
+  lostHours: number;
+  photoCount: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type LostHoursSummary = {
+  totalHours: number;
+  entries: LostHoursEntry[];
+};
+
+export type LostHoursEntry = {
+  id: string;
+  accidentId?: string | null;
+  occurredOn: string;
+  hours: number;
+  reason: string;
+  notes?: string | null;
+  createdAt: string;
+};
+
+export type Equipment = {
+  id: string;
+  name: string;
+  category: string;
+  serialNumber?: string | null;
+  calibrationDueOn?: string | null;
+  serviceDueOn?: string | null;
+  notes?: string | null;
+  isOverdue: boolean;
+  trafficLight: string;
+  photoCount: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type QuestionnaireQuestion = {
+  id: string;
+  prompt: string;
+  help: string;
+  kind: string;
+  required: boolean;
+};
+
+export type QuestionnaireTemplate = {
+  schemeCode: string;
+  schemeName: string;
+  title: string;
+  introduction: string;
+  questionCount: number;
+  latestResponseId?: string | null;
+  latestGeneratedAt?: string | null;
+  questions: QuestionnaireQuestion[];
+};
+
+export type QuestionnaireResponse = {
+  id: string;
+  schemeCode: string;
+  schemeName: string;
+  status: string;
+  answers: Record<string, string | null>;
+  generatedMarkdown?: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+

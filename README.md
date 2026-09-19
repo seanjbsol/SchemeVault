@@ -8,7 +8,7 @@ This repository is an MVP monorepo:
 | --- | --- |
 | `apps/api` | ASP.NET Core 10 Web API, EF Core, ASP.NET Identity + JWT |
 | `apps/mobile` | React Native (Expo managed workflow, Expo Router) |
-| `tests/SchemeVault.Api.Tests` | Tenant-isolation, billing-gate, and vertical-slice tests |
+| `tests/SchemeVault.Api.Tests` | Tenant-isolation, billing-gate, Pro entitlement, and vertical-slice tests |
 
 ## Architecture
 
@@ -74,7 +74,9 @@ dotnet test
 | `SubscriptionApi:BaseUrl` | Origin of the QckApp Subscription API (no trailing path). Example: `https://subscription.qckapp.example` |
 | `SubscriptionApi:ApiKey` | Server API key sent as `X-Api-Key`. Set via `SubscriptionApi__ApiKey` in production — do not commit secrets. |
 | `SubscriptionApi:ProductCode` | Always `SchemeVault` |
-| `SubscriptionApi:UseStub` | When `true`, no HTTP calls are made. Every tenant is treated as **active** on **Starter**. Default in Development and Testing. |
+| `SubscriptionApi:UseStub` | When `true`, no HTTP calls are made. Default in Development and Testing. |
+| `SubscriptionApi:StubPlan` | Stub plan name. `Starter` (default in tests) or `Pro`. |
+| `SubscriptionApi:ForcePro` | When `true`, an active stub (or live) entitlement is treated as **Pro** so questionnaires, accidents and equipment can be demoed. **On by default in Development.** Does not bypass an inactive/canceled subscription. |
 
 `appsettings.json` leaves `Jwt:SigningKey` and `SubscriptionApi:ApiKey` empty on purpose. `appsettings.Development.json` holds a **local-dev-only** JWT key and enables subscription stub mode so `dotnet run` works without a live Qck API.
 
@@ -92,12 +94,45 @@ SchemeVault is a Qck product. Billing, checkout, and the customer portal live in
 
 Statuses **`active`** and **`trialing`** are allowed through. Anything else (including `canceled`, `past_due`, `inactive`) returns **402** with `checkout: "/api/billing/checkout"`. Auth (`/api/auth/*`) and billing endpoints are not gated, so a lapsed tenant can still sign in and upgrade.
 
+**Starter vs Pro.** An active subscription is not enough for every route. Guided questionnaires, multi-scheme pack export, accident/lost-hours, and the equipment register require **Pro**, detected from Qck `plan` / `planCode` (e.g. `Pro`) or feature flags (`questionnaires`, `multi_scheme_export`, `accidents`, `equipment`). Starter tenants receive **402** with `requiredPlan: "Pro"`. `GET /api/billing/entitlements` includes `isPro` and `features` so the mobile app can show upgrade UX before the call.
+
 **Stub mode** (`SubscriptionApi:UseStub=true`):
 
-- Entitlements are `active` / `Starter` (override with `StubStatus` / `StubPlan` in tests)
+- Entitlements are `active` on `StubPlan` (Development defaults to **Pro** via `ForcePro` + `StubPlan=Pro`; tests default to **Starter**)
 - Checkout URL: `https://billing.qckapp.test/checkout/schemevault`
 - Portal URL: `https://billing.qckapp.test/portal/schemevault`
 - Tenant upsert is a no-op log line
+
+### Try questionnaires and stub Pro
+
+Development already turns Pro on so the demo tenant can complete a pack without a live Qck plan.
+
+```bash
+cd apps/api
+dotnet run
+# appsettings.Development.json: UseStub=true, ForcePro=true, StubPlan=Pro
+```
+
+1. Sign in as `demo@schemevault.test` / `DemoPassw0rd!` (or register a new org).
+2. Confirm **Settings** shows plan **Pro**.
+3. Open the **H&S** tab → **Guided questionnaires** → pick CHAS (or Constructionline / SafeContractor / Avetta).
+4. Answer the plain-English questions and tap **Generate pack draft**. You get markdown in-app and a PDF (`GET /api/questionnaires/responses/{id}/pdf`).
+5. **Export multi-scheme PDF pack** combines the latest generated draft per scheme.
+6. Attach **photos** on a vault item, an incident, or a piece of equipment (local disk under `App_Data/uploads/{tenantId}/`).
+7. **Accidents** logs incidents and lost hours for this tenant only. **Equipment** flags overdue calibration/service dates.
+
+To see the **Starter paywall** (402 + upgrade copy) locally:
+
+```bash
+# from apps/api, override Development
+export SubscriptionApi__ForcePro=false
+export SubscriptionApi__StubPlan=Starter
+dotnet run
+```
+
+Starter can still use the vault, schemes and renewals. Questionnaires, pack export, accidents and the equipment register return **402** with `requiredPlan: Pro` and `checkout: /api/billing/checkout`.
+
+Generated packs are **working drafts**, not official scheme submissions, certificates, or legal advice. Copy says so on every document.
 
 Point a real environment at Qck with:
 
@@ -136,7 +171,7 @@ Point Expo at the API with **`EXPO_PUBLIC_API_URL`**:
 | Android emulator | `http://10.0.2.2:5080` |
 | Physical device | `http://<your-lan-ip>:5080` (API already binds to localhost; use `--urls http://0.0.0.0:5080` if the device cannot connect) |
 
-Screens: sign in / register (creates a tenant and upserts it to Qck), home dashboard (traffic lights), schemes list + detail, evidence vault + add, renewals, settings (plan/status, Manage billing / Upgrade via `Linking.openURL`, organisation name, sign out).
+Screens: sign in / register (creates a tenant and upserts it to Qck), home dashboard (traffic lights plus incident/kit counts), schemes list + detail, evidence vault + photos, renewals, **H&S** (questionnaires, accidents, equipment — Pro), settings (plan/status, Manage billing / Upgrade via `Linking.openURL`, organisation name, sign out).
 
 UK English copy throughout.
 
@@ -161,9 +196,18 @@ All resource routes require `Authorization: Bearer <jwt>` and are scoped to `ten
 | GET/POST | `/api/renewals` | Accreditation records |
 | PUT/DELETE | `/api/renewals/{id}` | Update / delete |
 | GET/PATCH | `/api/tenants/current` | Organisation name (Owner/Admin to rename) |
-| GET | `/api/billing/entitlements` | Current plan/status (not subscription-gated) |
+| GET | `/api/billing/entitlements` | Current plan/status, `isPro`, `features` (not subscription-gated) |
 | POST | `/api/billing/checkout` | Owner/Admin: proxy Qck checkout session; body `{ successUrl, cancelUrl }` |
 | POST | `/api/billing/portal` | Owner/Admin: proxy Qck customer portal session |
+| GET/POST | `/api/evidence/{id}/photos` | Photo evidence on a vault item (Starter) |
+| GET/POST | `/api/photos/{id}` + `/file` | Photo metadata / bytes / DELETE |
+| GET | `/api/questionnaires` | Pro: scheme questionnaires |
+| GET/POST | `/api/questionnaires/schemes/{code}` + `/responses` | Pro: questions / save answers and generate pack |
+| GET | `/api/questionnaires/responses/{id}/pdf` | Pro: generated PDF |
+| POST | `/api/questionnaires/export` | Pro: multi-scheme pack PDF |
+| GET/POST | `/api/accidents` | Pro: incident list / create |
+| GET/POST | `/api/lost-hours` | Pro: lost-hours log |
+| GET/POST | `/api/equipment` | Pro: register; `?overdue=true` |
 | GET | `/health` | Liveness |
 
 ## Solution layout
@@ -177,4 +221,4 @@ tests/SchemeVault.Api.Tests
 
 ## What is deliberately out of scope for this scaffold
 
-Portal scheme integrations, OCR, invite-to-tenant, and production blob storage. The vault upload path is a local-disk stub so the vertical slice is real without cloud credentials. Stripe is owned by the QckApp Subscription API, not this repo.
+Portal scheme integrations, OCR, invite-to-tenant, and production blob storage. The vault/photo upload path is a local-disk stub so the vertical slice is real without cloud credentials. Stripe is owned by the QckApp Subscription API, not this repo. Generated questionnaire packs are drafts, not filings.

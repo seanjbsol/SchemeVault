@@ -66,4 +66,37 @@ public static class TrafficLights
 
         return fallback;
     }
+
+    public const int EquipmentAmberWindowDays = 30;
+
+    public static TrafficLight ForDueDate(DateTimeOffset? dueOn, DateTimeOffset utcNow, int amberDays = EquipmentAmberWindowDays)
+    {
+        if (dueOn is null)
+        {
+            return TrafficLight.Grey;
+        }
+
+        var days = (dueOn.Value - utcNow).TotalDays;
+        if (days < 0)
+        {
+            return TrafficLight.Red;
+        }
+
+        if (days <= amberDays)
+        {
+            return TrafficLight.Amber;
+        }
+
+        return TrafficLight.Green;
+    }
+
+    public static TrafficLight Combine(params TrafficLight[] lights)
+    {
+        if (lights.Length == 0)
+        {
+            return TrafficLight.Grey;
+        }
+
+        return lights.Max();
+    }
 }

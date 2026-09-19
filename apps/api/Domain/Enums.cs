@@ -32,3 +32,32 @@ public enum TrafficLight
     Amber = 2,
     Red = 3
 }
+
+public enum PhotoOwnerKind
+{
+    Evidence = 0,
+    Accident = 1,
+    Equipment = 2
+}
+
+public enum AccidentSeverity
+{
+    NearMiss = 0,
+    MinorInjury = 1,
+    LostTime = 2,
+    MajorInjury = 3,
+    DangerousOccurrence = 4,
+    Other = 5
+}
+
+public enum AccidentStatus
+{
+    Open = 0,
+    Closed = 1
+}
+
+public enum QuestionnaireStatus
+{
+    Draft = 0,
+    Generated = 1
+}

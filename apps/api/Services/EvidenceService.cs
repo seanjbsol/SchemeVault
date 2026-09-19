@@ -11,12 +11,14 @@ public sealed class EvidenceService
     private readonly AppDbContext _db;
     private readonly ITenantProvider _tenant;
     private readonly IFileStorage _files;
+    private readonly PhotoService _photos;
 
-    public EvidenceService(AppDbContext db, ITenantProvider tenant, IFileStorage files)
+    public EvidenceService(AppDbContext db, ITenantProvider tenant, IFileStorage files, PhotoService photos)
     {
         _db = db;
         _tenant = tenant;
         _files = files;
+        _photos = photos;
     }
 
     public async Task<IReadOnlyList<EvidenceDto>> ListAsync(CancellationToken ct)
@@ -24,10 +26,11 @@ public sealed class EvidenceService
         TenantGuard.EnsureAvailable(_tenant);
         var now = DateTimeOffset.UtcNow;
         var items = await _db.EvidenceItems.OrderByDescending(e => e.UpdatedAt).ToListAsync(ct);
+        var counts = await _photos.CountByOwnerAsync(PhotoOwnerKind.Evidence, items.Select(i => i.Id), ct);
         return items.Select(i =>
         {
             TenantGuard.EnsureOwns(_tenant, i);
-            return i.ToDto(now);
+            return i.ToDto(now, counts.GetValueOrDefault(i.Id));
         }).ToList();
     }
 
@@ -41,7 +44,7 @@ public sealed class EvidenceService
         }
 
         TenantGuard.EnsureOwns(_tenant, item);
-        return item.ToDto(DateTimeOffset.UtcNow);
+        return item.ToDto(DateTimeOffset.UtcNow, await _photos.CountAsync(PhotoOwnerKind.Evidence, item.Id, ct));
     }
 
     public async Task<EvidenceDto> CreateAsync(EvidenceWriteRequest request, CancellationToken ct)
@@ -80,7 +83,7 @@ public sealed class EvidenceService
         item.ExpiresOn = request.ExpiresOn;
         item.UpdatedAt = DateTimeOffset.UtcNow;
         await _db.SaveChangesAsync(ct);
-        return item.ToDto(item.UpdatedAt);
+        return item.ToDto(item.UpdatedAt, await _photos.CountAsync(PhotoOwnerKind.Evidence, item.Id, ct));
     }
 
     public async Task<bool> DeleteAsync(Guid id, CancellationToken ct)
@@ -93,6 +96,7 @@ public sealed class EvidenceService
         }
 
         TenantGuard.EnsureOwns(_tenant, item);
+        await _photos.DeleteForOwnerAsync(PhotoOwnerKind.Evidence, item.Id, ct);
         if (!string.IsNullOrWhiteSpace(item.StoredFileName))
         {
             await _files.DeleteAsync(item.TenantId, item.StoredFileName, ct);
@@ -126,7 +130,7 @@ public sealed class EvidenceService
         item.FileSizeBytes = size;
         item.UpdatedAt = DateTimeOffset.UtcNow;
         await _db.SaveChangesAsync(ct);
-        return item.ToDto(item.UpdatedAt);
+        return item.ToDto(item.UpdatedAt, await _photos.CountAsync(PhotoOwnerKind.Evidence, item.Id, ct));
     }
 
     public async Task<(Stream Stream, string FileName, string ContentType)?> OpenFileAsync(Guid id, CancellationToken ct)

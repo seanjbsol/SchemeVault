@@ -223,6 +223,61 @@ public static class SeedData
         clRams.EvidenceItemId = rams.Id;
         clRams.UpdatedAt = now;
 
+        var accident = new Accident
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenant.Id,
+            OccurredOn = now.AddDays(-18),
+            Location = "Grimsby yard — wash bay",
+            Severity = AccidentSeverity.LostTime,
+            Status = AccidentStatus.Closed,
+            Description = "Operative slipped on the wash-bay floor after a hose leak. First aid given on site. Recorded here as a working log, not a RIDDOR filing.",
+            InjuredPerson = "Site operative (initials only: J.P.)",
+            ImmediateAction = "Spill cleared, extra matting laid, toolbox talk the next morning.",
+            LostHours = 8,
+            CreatedAt = now,
+            UpdatedAt = now
+        };
+        db.Accidents.Add(accident);
+        db.LostHours.Add(new LostHoursEntry
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenant.Id,
+            AccidentId = accident.Id,
+            OccurredOn = now.AddDays(-18),
+            Hours = 8,
+            Reason = "Lost-time after yard slip",
+            Notes = "One shift. No RIDDOR assumed; a competent person should confirm.",
+            CreatedAt = now
+        });
+
+        db.Equipment.AddRange(
+            new EquipmentItem
+            {
+                Id = Guid.NewGuid(),
+                TenantId = tenant.Id,
+                Name = "Genie S-65 boom (hired-in typical)",
+                Category = "MEWP",
+                SerialNumber = "GS65-10422",
+                CalibrationDueOn = now.AddDays(-12),
+                ServiceDueOn = now.AddDays(40),
+                Notes = "LOLER thorough examination overdue — flagged so it is not sent to site.",
+                CreatedAt = now,
+                UpdatedAt = now
+            },
+            new EquipmentItem
+            {
+                Id = Guid.NewGuid(),
+                TenantId = tenant.Id,
+                Name = "Yard first-aid kit",
+                Category = "FirstAid",
+                SerialNumber = "FA-YARD-1",
+                ServiceDueOn = now.AddDays(120),
+                Notes = "Contents checked monthly.",
+                CreatedAt = now,
+                UpdatedAt = now
+            });
+
         await db.SaveChangesAsync();
         logger.LogInformation("Seeded demo tenant {Org} ({Email} / {Password})", DemoOrganisation, DemoEmail, DemoPassword);
     }

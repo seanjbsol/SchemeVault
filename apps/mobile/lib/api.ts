@@ -6,6 +6,8 @@ export class ApiError extends Error {
   constructor(
     message: string,
     public status: number,
+    public requiredPlan?: string | null,
+    public feature?: string | null,
   ) {
     super(message);
   }
@@ -57,7 +59,9 @@ export async function api<T>(path: string, options: Options = {}): Promise<T> {
   if (!response.ok) {
     if (response.status === 402) {
       const title = readTitle(data) ?? 'An active SchemeVault subscription is required.';
-      throw new ApiError(title, response.status);
+      const requiredPlan = readString(data, 'requiredPlan');
+      const feature = readString(data, 'feature');
+      throw new ApiError(title, response.status, requiredPlan, feature);
     }
     const title = readTitle(data) ?? `Request failed (${response.status})`;
     throw new ApiError(title, response.status);
@@ -66,12 +70,16 @@ export async function api<T>(path: string, options: Options = {}): Promise<T> {
   return data as T;
 }
 
-function readTitle(data: unknown): string | null {
-  if (data && typeof data === 'object' && 'title' in data) {
-    const title = (data as { title?: unknown }).title;
-    return typeof title === 'string' && title.length > 0 ? title : null;
+function readString(data: unknown, key: string): string | null {
+  if (data && typeof data === 'object' && key in data) {
+    const value = (data as Record<string, unknown>)[key];
+    return typeof value === 'string' && value.length > 0 ? value : null;
   }
   return null;
+}
+
+function readTitle(data: unknown): string | null {
+  return readString(data, 'title');
 }
 
 function safeJson(text: string): unknown {
@@ -81,3 +89,78 @@ function safeJson(text: string): unknown {
     return text;
   }
 }
+
+export type UploadFile = {
+  uri: string;
+  name: string;
+  type: string;
+};
+
+export async function uploadFile<T>(path: string, file: UploadFile, fields?: Record<string, string>): Promise<T> {
+  const token = await getToken();
+  const form = new FormData();
+  if (fields) {
+    for (const [key, value] of Object.entries(fields)) {
+      form.append(key, value);
+    }
+  }
+
+  const isBlobUri = file.uri.startsWith('blob:') || file.uri.startsWith('data:') || file.uri.startsWith('http');
+  if (isBlobUri) {
+    const res = await fetch(file.uri);
+    const blob = await res.blob();
+    form.append('file', blob, file.name);
+  } else {
+    form.append('file', { uri: file.uri, name: file.name, type: file.type } as unknown as Blob);
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(`${apiBaseUrl}${path}`, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: form,
+    });
+  } catch {
+    throw new ApiError(`Cannot reach the SchemeVault API at ${apiBaseUrl}.`, 0);
+  }
+
+  if (response.status === 204) {
+    return undefined as T;
+  }
+  const text = await response.text();
+  const data = text ? safeJson(text) : null;
+  if (!response.ok) {
+    throw new ApiError(readTitle(data) ?? `Upload failed (${response.status})`, response.status, readString(data, 'requiredPlan'), readString(data, 'feature'));
+  }
+  return data as T;
+}
+
+export async function downloadAuthorizedFile(path: string, filename: string): Promise<void> {
+  const token = await getToken();
+  const response = await fetch(`${apiBaseUrl}${path}`, {
+    headers: {
+      Accept: 'application/pdf,application/octet-stream',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    const data = text ? safeJson(text) : null;
+    throw new ApiError(readTitle(data) ?? `Download failed (${response.status})`, response.status, readString(data, 'requiredPlan'));
+  }
+  if (typeof document === 'undefined' || typeof URL.createObjectURL !== 'function') {
+    throw new ApiError('PDF download is available in the Expo web app for this demo. The generated markdown is shown on this screen.', 0);
+  }
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+

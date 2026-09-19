@@ -84,6 +84,7 @@ builder.Services.Configure<SubscriptionApiOptions>(
     builder.Configuration.GetSection(SubscriptionApiOptions.SectionName));
 builder.Services.AddScoped<BillingService>();
 builder.Services.AddScoped<SubscriptionGateFilter>();
+builder.Services.AddScoped<ProGateFilter>();
 RegisterSubscriptionClient(builder);
 
 builder.Services.AddControllers(options =>
@@ -93,6 +94,7 @@ builder.Services.AddControllers(options =>
             .Build();
         options.Filters.Add(new AuthorizeFilter(policy));
         options.Filters.AddService<SubscriptionGateFilter>();
+        options.Filters.AddService<ProGateFilter>();
     })
     .AddJsonOptions(options =>
     {
@@ -143,6 +145,10 @@ builder.Services.AddSingleton<IFileStorage, LocalFileStorage>();
 builder.Services.AddScoped<JwtTokenService>();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<EvidenceService>();
+builder.Services.AddScoped<PhotoService>();
+builder.Services.AddScoped<AccidentService>();
+builder.Services.AddScoped<EquipmentService>();
+builder.Services.AddScoped<QuestionnaireService>();
 builder.Services.AddScoped<RenewalService>();
 builder.Services.AddScoped<SchemeQueryService>();
 builder.Services.AddScoped<DashboardService>();
@@ -167,6 +173,13 @@ app.UseExceptionHandler(errorApp =>
         {
             context.Response.StatusCode = StatusCodes.Status404NotFound;
             await context.Response.WriteAsJsonAsync(new { title = "Not found." });
+            return;
+        }
+
+        if (error is InvalidOperationException)
+        {
+            context.Response.StatusCode = StatusCodes.Status400BadRequest;
+            await context.Response.WriteAsJsonAsync(new { title = error.Message });
             return;
         }
 

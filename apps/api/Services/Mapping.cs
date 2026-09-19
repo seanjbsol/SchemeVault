@@ -5,7 +5,7 @@ namespace SchemeVault.Api.Services;
 
 public static class Mapping
 {
-    public static EvidenceDto ToDto(this EvidenceItem item, DateTimeOffset utcNow) => new()
+    public static EvidenceDto ToDto(this EvidenceItem item, DateTimeOffset utcNow, int photoCount = 0) => new()
     {
         Id = item.Id,
         Title = item.Title,
@@ -17,6 +17,7 @@ public static class Mapping
         OriginalFileName = item.OriginalFileName,
         ContentType = item.ContentType,
         FileSizeBytes = item.FileSizeBytes,
+        PhotoCount = photoCount,
         CreatedAt = item.CreatedAt,
         UpdatedAt = item.UpdatedAt
     };

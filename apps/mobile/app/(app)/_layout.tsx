@@ -42,6 +42,14 @@ export default function AppLayout() {
         }}
       />
       <Tabs.Screen name="renewals" options={{ title: 'Renewals', tabBarIcon: ({ focused }) => <TabGlyph glyph="↻" focused={focused} /> }} />
+      <Tabs.Screen
+        name="work"
+        options={{
+          title: 'H&S',
+          headerShown: false,
+          tabBarIcon: ({ focused }) => <TabGlyph glyph="◆" focused={focused} />,
+        }}
+      />
       <Tabs.Screen name="settings" options={{ title: 'Settings', tabBarIcon: ({ focused }) => <TabGlyph glyph="⚙" focused={focused} /> }} />
     </Tabs>
   );

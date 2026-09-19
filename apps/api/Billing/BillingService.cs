@@ -25,10 +25,11 @@ public sealed class BillingService
         _options = options.Value;
     }
 
-    public Task<EntitlementsDto> GetEntitlementsAsync(CancellationToken ct)
+    public async Task<EntitlementsDto> GetEntitlementsAsync(CancellationToken ct)
     {
         EnsureSignedIn();
-        return _client.GetEntitlementsAsync(_user.TenantId, ct);
+        var dto = await _client.GetEntitlementsAsync(_user.TenantId, ct);
+        return EntitlementsNormalizer.Apply(dto, _options);
     }
 
     public async Task<BillingSessionResponse> CreateCheckoutAsync(BillingSessionRequest request, CancellationToken ct)

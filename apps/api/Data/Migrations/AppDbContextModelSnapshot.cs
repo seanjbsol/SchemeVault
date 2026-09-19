@@ -163,6 +163,59 @@ namespace SchemeVault.Api.Data.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("SchemeVault.Api.Domain.Accident", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("CreatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ImmediateAction")
+                        .HasMaxLength(2000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("InjuredPerson")
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Location")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("LostHours")
+                        .HasPrecision(8, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("OccurredOn")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Severity")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("UpdatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
+
+                    b.ToTable("Accidents");
+                });
+
             modelBuilder.Entity("SchemeVault.Api.Domain.Accreditation", b =>
                 {
                     b.Property<Guid>("Id")
@@ -284,6 +337,52 @@ namespace SchemeVault.Api.Data.Migrations
                     b.HasIndex("TenantId");
 
                     b.ToTable("AspNetUsers", (string)null);
+                });
+
+            modelBuilder.Entity("SchemeVault.Api.Domain.EquipmentItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<long?>("CalibrationDueOn")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("CreatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(2000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SerialNumber")
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long?>("ServiceDueOn")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("UpdatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
+
+                    b.ToTable("Equipment");
                 });
 
             modelBuilder.Entity("SchemeVault.Api.Domain.EvidenceItem", b =>
@@ -415,6 +514,46 @@ namespace SchemeVault.Api.Data.Migrations
                     b.ToTable("GapChecklistTemplates");
                 });
 
+            modelBuilder.Entity("SchemeVault.Api.Domain.LostHoursEntry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("AccidentId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("CreatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("Hours")
+                        .HasPrecision(8, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(2000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("OccurredOn")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AccidentId");
+
+                    b.HasIndex("TenantId");
+
+                    b.ToTable("LostHours");
+                });
+
             modelBuilder.Entity("SchemeVault.Api.Domain.Membership", b =>
                 {
                     b.Property<Guid>("Id")
@@ -441,6 +580,90 @@ namespace SchemeVault.Api.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("Memberships");
+                });
+
+            modelBuilder.Entity("SchemeVault.Api.Domain.PhotoAttachment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Caption")
+                        .HasMaxLength(300)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("CreatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("FileSizeBytes")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("OriginalFileName")
+                        .IsRequired()
+                        .HasMaxLength(260)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("OwnerId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("OwnerKind")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("StoredFileName")
+                        .IsRequired()
+                        .HasMaxLength(260)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "OwnerKind", "OwnerId");
+
+                    b.ToTable("Photos");
+                });
+
+            modelBuilder.Entity("SchemeVault.Api.Domain.QuestionnaireResponse", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("AnswersJson")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("CreatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("GeneratedMarkdown")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SchemeCode")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("UpdatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "SchemeCode", "UpdatedAt");
+
+                    b.ToTable("QuestionnaireResponses");
                 });
 
             modelBuilder.Entity("SchemeVault.Api.Domain.Scheme", b =>
@@ -550,7 +773,7 @@ namespace SchemeVault.Api.Data.Migrations
                             b1.Property<byte[]>("ClientDataJson")
                                 .IsRequired();
 
-                            b1.Property<long>("CreatedAt");
+                            b1.Property<DateTimeOffset>("CreatedAt");
 
                             b1.Property<bool>("IsBackedUp");
 
@@ -607,6 +830,17 @@ namespace SchemeVault.Api.Data.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("SchemeVault.Api.Domain.Accident", b =>
+                {
+                    b.HasOne("SchemeVault.Api.Domain.Tenant", "Tenant")
+                        .WithMany("Accidents")
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
+                });
+
             modelBuilder.Entity("SchemeVault.Api.Domain.Accreditation", b =>
                 {
                     b.HasOne("SchemeVault.Api.Domain.Scheme", "Scheme")
@@ -632,6 +866,17 @@ namespace SchemeVault.Api.Data.Migrations
                         .WithMany()
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("SchemeVault.Api.Domain.EquipmentItem", b =>
+                {
+                    b.HasOne("SchemeVault.Api.Domain.Tenant", "Tenant")
+                        .WithMany("Equipment")
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Tenant");
@@ -692,6 +937,24 @@ namespace SchemeVault.Api.Data.Migrations
                     b.Navigation("Scheme");
                 });
 
+            modelBuilder.Entity("SchemeVault.Api.Domain.LostHoursEntry", b =>
+                {
+                    b.HasOne("SchemeVault.Api.Domain.Accident", "Accident")
+                        .WithMany("LostHoursEntries")
+                        .HasForeignKey("AccidentId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("SchemeVault.Api.Domain.Tenant", "Tenant")
+                        .WithMany("LostHours")
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Accident");
+
+                    b.Navigation("Tenant");
+                });
+
             modelBuilder.Entity("SchemeVault.Api.Domain.Membership", b =>
                 {
                     b.HasOne("SchemeVault.Api.Domain.Tenant", "Tenant")
@@ -711,6 +974,33 @@ namespace SchemeVault.Api.Data.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("SchemeVault.Api.Domain.PhotoAttachment", b =>
+                {
+                    b.HasOne("SchemeVault.Api.Domain.Tenant", "Tenant")
+                        .WithMany("Photos")
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("SchemeVault.Api.Domain.QuestionnaireResponse", b =>
+                {
+                    b.HasOne("SchemeVault.Api.Domain.Tenant", "Tenant")
+                        .WithMany("QuestionnaireResponses")
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("SchemeVault.Api.Domain.Accident", b =>
+                {
+                    b.Navigation("LostHoursEntries");
+                });
+
             modelBuilder.Entity("SchemeVault.Api.Domain.ApplicationUser", b =>
                 {
                     b.Navigation("Memberships");
@@ -725,13 +1015,23 @@ namespace SchemeVault.Api.Data.Migrations
 
             modelBuilder.Entity("SchemeVault.Api.Domain.Tenant", b =>
                 {
+                    b.Navigation("Accidents");
+
                     b.Navigation("Accreditations");
+
+                    b.Navigation("Equipment");
 
                     b.Navigation("EvidenceItems");
 
                     b.Navigation("GapItems");
 
+                    b.Navigation("LostHours");
+
                     b.Navigation("Memberships");
+
+                    b.Navigation("Photos");
+
+                    b.Navigation("QuestionnaireResponses");
                 });
 #pragma warning restore 612, 618
         }

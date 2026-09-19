@@ -36,7 +36,13 @@
           "backgroundColor": "#0B1F3A"
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "SchemeVault uses photos you choose as evidence on vault items, incidents and equipment."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

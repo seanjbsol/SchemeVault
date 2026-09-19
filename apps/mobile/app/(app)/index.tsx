@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useFocusEffect } from 'expo-router';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { router, useFocusEffect } from 'expo-router';
 import { Card, EmptyState, ErrorBanner, Screen, Title, TrafficDot } from '@/components/ui';
 import { ApiError } from '@/lib/api';
 import { endpoints } from '@/lib/endpoints';
@@ -45,6 +45,9 @@ export default function HomeScreen() {
         <Text style={styles.hello}>Hello{user?.fullName ? `, ${user.fullName.split(' ')[0]}` : ''}</Text>
         <Title>{data?.tenantName ?? user?.tenantName ?? 'Your organisation'}</Title>
         <Text style={styles.lede}>Renewal traffic lights for the next 60 days, plus gaps that still need evidence.</Text>
+        <Pressable onPress={() => router.push('/work')}>
+          <Text style={styles.link}>H&S tools (questionnaires, accidents, equipment) →</Text>
+        </Pressable>
         <ErrorBanner message={error} />
 
         <View style={styles.grid}>
@@ -52,6 +55,8 @@ export default function HomeScreen() {
           <Stat label="Expired" value={counts?.expired ?? '—'} tone={colours.red} />
           <Stat label="Missing evidence" value={counts?.missingEvidence ?? '—'} tone={colours.navyMid} />
           <Stat label="Active schemes" value={counts?.activeSchemes ?? '—'} tone={colours.green} />
+          <Stat label="Open incidents" value={counts?.openAccidents ?? '—'} tone={colours.navy} />
+          <Stat label="Overdue kit" value={counts?.overdueEquipment ?? '—'} tone={colours.red} />
         </View>
 
         <Text style={styles.section}>Upcoming renewals</Text>
@@ -117,6 +122,7 @@ const styles = StyleSheet.create({
   content: { padding: 16, paddingBottom: 32 },
   hello: { color: colours.muted, fontWeight: '600' },
   lede: { color: colours.muted, marginBottom: 16, lineHeight: 20 },
+  link: { color: colours.navyMid, fontWeight: '700', marginBottom: 16 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 },
   stat: {
     width: '48%',

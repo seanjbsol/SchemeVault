@@ -11,6 +11,7 @@ export default function EvidenceStack() {
       }}>
       <Stack.Screen name="index" options={{ title: 'Evidence vault' }} />
       <Stack.Screen name="add" options={{ title: 'Add evidence' }} />
+      <Stack.Screen name="[id]" options={{ title: 'Vault item' }} />
     </Stack>
   );
 }
