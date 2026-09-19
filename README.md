@@ -140,6 +140,8 @@ Screens: sign in / register (creates a tenant and upserts it to Qck), home dashb
 
 UK English copy throughout.
 
+Preview without running locally: [docs/screenshots](docs/screenshots). The settings shot predates billing UI.
+
 ## API surface (MVP)
 
 All resource routes require `Authorization: Bearer <jwt>` and are scoped to `tenant_id`.
