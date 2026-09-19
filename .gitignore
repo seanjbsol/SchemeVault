@@ -1,0 +1,69 @@
+# Build
+bin/
+obj/
+[Bb]uild/
+artifacts/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+project.lock.json
+project.fragment.lock.json
+
+# .NET
+*.dll
+*.exe
+*.pdb
+*.cache
+*.log
+
+# Databases & uploads (local/dev)
+*.db
+*.db-shm
+*.db-wal
+App_Data/
+apps/api/App_Data/
+
+# Secrets — never commit
+.env
+.env.local
+.env.*.local
+appsettings.*.local.json
+secrets.json
+*.pfx
+
+# Node / Expo
+node_modules/
+.expo/
+.expo-shared/
+dist/
+web-build/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+npm-debug.*
+yarn-error.log
+.pnpm-debug.log
+
+# IDE / OS
+.idea/
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
+Thumbs.db
+*~
+.vs/
+
+# Test / coverage
+TestResults/
+coverage/
+*.coverage
+*.coveragexml
+
+# Misc
+*.swp
+.turbo/
+.cursor/
