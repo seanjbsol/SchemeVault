@@ -150,9 +150,9 @@ public sealed class SubscriptionClient : ISubscriptionClient
         }
 
         var status = ReadString(source, "status", "subscriptionStatus", "state") ?? "inactive";
-        var plan = ReadString(source, "plan", "planName", "planCode", "productName");
+        var plan = ReadString(source, "plan", "planName", "productName");
         var planCode = ReadString(source, "planCode", "planIdentifier", "priceId");
-        var dto = EntitlementsDto.Create(status, plan, planCode);
+        var dto = EntitlementsDto.Create(status, plan, planCode, ReadStringArray(source, "features", "featureFlags", "capabilities"));
         dto.TrialEndsAt = ReadDate(source, "trialEndsAt", "trialEnd");
         dto.CurrentPeriodEnd = ReadDate(source, "currentPeriodEnd", "periodEnd", "expiresAt");
         return dto;
@@ -175,6 +175,32 @@ public sealed class SubscriptionClient : ISubscriptionClient
         }
 
         return null;
+    }
+
+    private static string[] ReadStringArray(JsonElement element, params string[] names)
+    {
+        foreach (var name in names)
+        {
+            if (element.ValueKind != JsonValueKind.Object ||
+                !element.TryGetProperty(name, out var prop) ||
+                prop.ValueKind != JsonValueKind.Array)
+            {
+                continue;
+            }
+
+            var values = prop.EnumerateArray()
+                .Where(item => item.ValueKind == JsonValueKind.String)
+                .Select(item => item.GetString())
+                .Where(value => !string.IsNullOrWhiteSpace(value))
+                .Select(value => value!)
+                .ToArray();
+            if (values.Length > 0)
+            {
+                return values;
+            }
+        }
+
+        return [];
     }
 
     private static DateTimeOffset? ReadDate(JsonElement element, params string[] names)

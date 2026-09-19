@@ -31,6 +31,11 @@ public class AppDbContext : Microsoft.AspNetCore.Identity.EntityFrameworkCore.Id
     public DbSet<EvidenceItem> EvidenceItems => Set<EvidenceItem>();
     public DbSet<Accreditation> Accreditations => Set<Accreditation>();
     public DbSet<GapChecklistItem> GapChecklistItems => Set<GapChecklistItem>();
+    public DbSet<PhotoAttachment> Photos => Set<PhotoAttachment>();
+    public DbSet<Accident> Accidents => Set<Accident>();
+    public DbSet<LostHoursEntry> LostHours => Set<LostHoursEntry>();
+    public DbSet<EquipmentItem> Equipment => Set<EquipmentItem>();
+    public DbSet<QuestionnaireResponse> QuestionnaireResponses => Set<QuestionnaireResponse>();
 
     /// <summary>
     /// Identity 10 passkeys (schema v3). Forced here so design-time and tests that
@@ -115,12 +120,74 @@ public class AppDbContext : Microsoft.AspNetCore.Identity.EntityFrameworkCore.Id
             e.HasQueryFilter(x => !_applyTenantFilter || x.TenantId == _tenantId);
         });
 
+        builder.Entity<PhotoAttachment>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.HasOne(x => x.Tenant).WithMany(t => t.Photos).HasForeignKey(x => x.TenantId);
+            e.HasIndex(x => new { x.TenantId, x.OwnerKind, x.OwnerId });
+            e.Property(x => x.OriginalFileName).HasMaxLength(260).IsRequired();
+            e.Property(x => x.StoredFileName).HasMaxLength(260).IsRequired();
+            e.Property(x => x.ContentType).HasMaxLength(120).IsRequired();
+            e.Property(x => x.Caption).HasMaxLength(300);
+            e.HasQueryFilter(x => !_applyTenantFilter || x.TenantId == _tenantId);
+        });
+
+        builder.Entity<Accident>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.HasOne(x => x.Tenant).WithMany(t => t.Accidents).HasForeignKey(x => x.TenantId);
+            e.Property(x => x.Location).HasMaxLength(200).IsRequired();
+            e.Property(x => x.Description).HasMaxLength(4000).IsRequired();
+            e.Property(x => x.InjuredPerson).HasMaxLength(200);
+            e.Property(x => x.ImmediateAction).HasMaxLength(2000);
+            e.Property(x => x.LostHours).HasPrecision(8, 2);
+            e.HasQueryFilter(x => !_applyTenantFilter || x.TenantId == _tenantId);
+        });
+
+        builder.Entity<LostHoursEntry>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.HasOne(x => x.Tenant).WithMany(t => t.LostHours).HasForeignKey(x => x.TenantId);
+            e.HasOne(x => x.Accident).WithMany(a => a.LostHoursEntries).HasForeignKey(x => x.AccidentId)
+                .OnDelete(DeleteBehavior.SetNull);
+            e.Property(x => x.Hours).HasPrecision(8, 2);
+            e.Property(x => x.Reason).HasMaxLength(300).IsRequired();
+            e.Property(x => x.Notes).HasMaxLength(2000);
+            e.HasQueryFilter(x => !_applyTenantFilter || x.TenantId == _tenantId);
+        });
+
+        builder.Entity<EquipmentItem>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.HasOne(x => x.Tenant).WithMany(t => t.Equipment).HasForeignKey(x => x.TenantId);
+            e.Property(x => x.Name).HasMaxLength(200).IsRequired();
+            e.Property(x => x.Category).HasMaxLength(80).IsRequired();
+            e.Property(x => x.SerialNumber).HasMaxLength(80);
+            e.Property(x => x.Notes).HasMaxLength(2000);
+            e.HasQueryFilter(x => !_applyTenantFilter || x.TenantId == _tenantId);
+        });
+
+        builder.Entity<QuestionnaireResponse>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.HasOne(x => x.Tenant).WithMany(t => t.QuestionnaireResponses).HasForeignKey(x => x.TenantId);
+            e.Property(x => x.SchemeCode).HasMaxLength(40).IsRequired();
+            e.Property(x => x.AnswersJson).IsRequired();
+            e.HasIndex(x => new { x.TenantId, x.SchemeCode, x.UpdatedAt });
+            e.HasQueryFilter(x => !_applyTenantFilter || x.TenantId == _tenantId);
+        });
+
         // SQLite cannot ORDER BY DateTimeOffset. Store as binary locally; SQL Server uses native types.
         if (Database.IsSqlite())
         {
             var converter = new DateTimeOffsetToBinaryConverter();
             foreach (var entityType in builder.Model.GetEntityTypes())
             {
+                if (entityType.IsOwned())
+                {
+                    continue;
+                }
+
                 foreach (var property in entityType.GetProperties())
                 {
                     if (property.ClrType == typeof(DateTimeOffset) || property.ClrType == typeof(DateTimeOffset?))

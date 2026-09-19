@@ -78,3 +78,40 @@ Content-Type: application/json
 {
   "returnUrl": "https://schemevault.app/settings"
 }
+
+### Questionnaires (Pro)
+GET {{host}}/api/questionnaires
+Authorization: Bearer {{token}}
+
+### Generate CHAS pack draft (Pro)
+POST {{host}}/api/questionnaires/schemes/CHAS/responses
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "generate": true,
+  "answers": {
+    "companyName": "Northern Plant Hire Ltd",
+    "tradingAddress": "Unit 4, Estate Road, Grimsby, DN31 2TG",
+    "headcount": "22",
+    "workDescription": "Plant hire and operator supply.",
+    "hsResponsible": "Alex Harper, director",
+    "hsPolicy": "Yes",
+    "elInsurance": "Aviva, expires 2027-03-31",
+    "plInsurance": "Hiscox, £10m, expires 2027-03-31",
+    "competence": "CSCS/CPCS checked against a training matrix.",
+    "rams": "Supervisor drafts; director signs.",
+    "accidents": "Accident book in the office; director decides RIDDOR with an adviser.",
+    "firstAid": "Two appointed persons; kits in the office and vans.",
+    "enforcement": "No"
+  }
+}
+
+### Accidents (Pro)
+GET {{host}}/api/accidents
+Authorization: Bearer {{token}}
+
+### Equipment overdue (Pro)
+GET {{host}}/api/equipment?overdue=true
+Authorization: Bearer {{token}}
+

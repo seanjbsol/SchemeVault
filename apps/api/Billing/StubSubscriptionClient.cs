@@ -22,8 +22,10 @@ public sealed class StubSubscriptionClient : ISubscriptionClient
 
     public Task<EntitlementsDto> GetEntitlementsAsync(Guid tenantId, CancellationToken ct)
     {
-        var dto = EntitlementsDto.Create(_options.StubStatus, _options.StubPlan, "starter");
-        return Task.FromResult(dto);
+        var plan = _options.StubPlan;
+        var planCode = EntitlementsNormalizer.LooksLikePro(plan) || _options.ForcePro ? "pro" : "starter";
+        var dto = EntitlementsDto.Create(_options.StubStatus, plan, planCode);
+        return Task.FromResult(EntitlementsNormalizer.Apply(dto, _options));
     }
 
     public Task UpsertTenantAsync(QckUpsertTenantRequest request, CancellationToken ct)

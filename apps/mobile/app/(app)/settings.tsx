@@ -91,9 +91,16 @@ export default function SettingsScreen() {
         {saved ? <Text style={styles.ok}>Organisation name saved.</Text> : null}
         <Card>
           <Text style={styles.rowLabel}>Plan</Text>
-          <Text style={styles.rowValue}>{planLabel}</Text>
+          <Text style={styles.rowValue}>
+            {planLabel}
+            {entitlements?.isPro ? ' (Pro features on)' : ' (Starter)'}
+          </Text>
           <Text style={styles.rowLabel}>Subscription</Text>
           <Text style={styles.rowValue}>{statusLabel}</Text>
+          <Text style={styles.hint}>
+            Pro unlocks guided questionnaires, multi-scheme pack export, accident reporting and the equipment register.
+            In local stub mode set SubscriptionApi:ForcePro or StubPlan=Pro (already on in Development).
+          </Text>
           {canBill ? (
             <PrimaryButton title={billingTitle} onPress={() => void openBilling()} loading={billingBusy} />
           ) : (

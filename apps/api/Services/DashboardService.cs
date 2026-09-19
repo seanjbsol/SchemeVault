@@ -57,6 +57,13 @@ public sealed class DashboardService
 
         var missingCount = await _db.GapChecklistItems.CountAsync(g => g.Status == GapItemStatus.Missing, ct);
         var evidenceCount = await _db.EvidenceItems.CountAsync(ct);
+        var openAccidents = await _db.Accidents.CountAsync(a => a.Status == AccidentStatus.Open, ct);
+        var yearAgo = now.AddYears(-1);
+        var lostHours = await _db.LostHours
+            .Where(h => h.OccurredOn >= yearAgo)
+            .SumAsync(h => (decimal?)h.Hours, ct) ?? 0;
+        var equipment = await _db.Equipment.ToListAsync(ct);
+        var overdueEquipment = equipment.Count(e => EquipmentService.IsOverdue(e, now));
         var active = renewals.Count(r =>
             TrafficLights.DerivedStatus(r.ExpiresOn, now, r.Status) is AccreditationStatus.Active
                 or AccreditationStatus.ExpiringSoon);
@@ -70,7 +77,10 @@ public sealed class DashboardService
                 Expired = expired.Count,
                 MissingEvidence = missingCount,
                 ActiveSchemes = active,
-                EvidenceItems = evidenceCount
+                EvidenceItems = evidenceCount,
+                OpenAccidents = openAccidents,
+                OverdueEquipment = overdueEquipment,
+                LostHoursLast12Months = lostHours
             },
             UpcomingRenewals = upcoming,
             ExpiredRenewals = expired,

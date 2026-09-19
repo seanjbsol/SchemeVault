@@ -42,8 +42,7 @@ export default function EvidenceListScreen() {
           />
         }>
         <Text style={styles.lede}>
-          Store insurance, policies, RAMS and training once, then reuse across schemes. Files can be attached via the
-          API; this screen records the metadata.
+          Store insurance, policies, RAMS and training once, then reuse across schemes. Open an item to attach photos.
         </Text>
         <PrimaryButton title="Add evidence" onPress={() => router.push('/evidence/add')} />
         <View style={{ height: 12 }} />
@@ -52,7 +51,8 @@ export default function EvidenceListScreen() {
           <EmptyState title="Vault is empty" body="Add a policy or certificate to start closing scheme gaps." />
         ) : (
           items.map((item) => (
-            <Card key={item.id}>
+            <Pressable key={item.id} onPress={() => router.push(`/evidence/${item.id}`)}>
+            <Card>
               <View style={styles.row}>
                 <TrafficDot light={item.trafficLight} />
                 <View style={{ flex: 1 }}>
@@ -63,22 +63,13 @@ export default function EvidenceListScreen() {
                   <Text style={styles.meta}>
                     {item.expiresOn ? `Expires ${formatDate(item.expiresOn)}` : 'No expiry'}
                     {item.hasFile ? ` · ${item.originalFileName}` : ' · no file yet'}
+                    {item.photoCount ? ` · ${item.photoCount} photo${item.photoCount === 1 ? '' : 's'}` : ''}
                   </Text>
                 </View>
               </View>
               {item.notes ? <Text style={styles.notes}>{item.notes}</Text> : null}
-              <Pressable
-                onPress={async () => {
-                  try {
-                    await endpoints.deleteEvidence(item.id);
-                    await load();
-                  } catch (err) {
-                    setError(err instanceof ApiError ? err.message : 'Could not delete that item.');
-                  }
-                }}>
-                <Text style={styles.delete}>Remove</Text>
-              </Pressable>
             </Card>
+            </Pressable>
           ))
         )}
       </ScrollView>
@@ -93,5 +84,4 @@ const styles = StyleSheet.create({
   title: { fontWeight: '800', color: colours.navy },
   meta: { color: colours.muted, marginTop: 4, fontSize: 13 },
   notes: { marginTop: 8, color: colours.ink, fontSize: 14 },
-  delete: { marginTop: 10, color: colours.red, fontWeight: '700' },
 });

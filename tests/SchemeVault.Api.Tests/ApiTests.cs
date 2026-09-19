@@ -16,6 +16,7 @@ public class ApiFactory : WebApplicationFactory<Program>
 
     protected virtual string StubStatus => "active";
     protected virtual string StubPlan => "Starter";
+    protected virtual string ForcePro => "false";
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -30,6 +31,7 @@ public class ApiFactory : WebApplicationFactory<Program>
         builder.UseSetting("SubscriptionApi:ProductCode", "SchemeVault");
         builder.UseSetting("SubscriptionApi:StubStatus", StubStatus);
         builder.UseSetting("SubscriptionApi:StubPlan", StubPlan);
+        builder.UseSetting("SubscriptionApi:ForcePro", ForcePro);
 
         builder.ConfigureServices(services =>
         {
@@ -381,6 +383,7 @@ public class BillingStubTests : ApiTestBase
         using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal("active", doc.RootElement.GetProperty("status").GetString(), ignoreCase: true);
         Assert.Equal("Starter", doc.RootElement.GetProperty("plan").GetString());
+        Assert.False(doc.RootElement.GetProperty("isPro").GetBoolean());
         Assert.True(doc.RootElement.GetProperty("isActive").GetBoolean());
     }
 

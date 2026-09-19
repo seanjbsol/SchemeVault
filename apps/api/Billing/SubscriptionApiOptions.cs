@@ -22,5 +22,12 @@ public sealed class SubscriptionApiOptions
 
     public string StubPlan { get; set; } = "Starter";
 
+    /// <summary>
+    /// When true (typical in Development stub mode), the tenant is treated as
+    /// SchemeVault Pro so questionnaires, accidents and equipment can be demoed
+    /// without a live Qck plan. Does not bypass an inactive subscription.
+    /// </summary>
+    public bool ForcePro { get; set; }
+
     public string ApiKeyHeaderName { get; set; } = "X-Api-Key";
 }

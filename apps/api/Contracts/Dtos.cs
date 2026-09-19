@@ -82,6 +82,7 @@ public sealed class EvidenceDto
     public string? OriginalFileName { get; set; }
     public string? ContentType { get; set; }
     public long? FileSizeBytes { get; set; }
+    public int PhotoCount { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
 }
@@ -176,4 +177,174 @@ public sealed class DashboardCountsDto
     public int MissingEvidence { get; set; }
     public int ActiveSchemes { get; set; }
     public int EvidenceItems { get; set; }
+    public int OpenAccidents { get; set; }
+    public int OverdueEquipment { get; set; }
+    public decimal LostHoursLast12Months { get; set; }
 }
+
+public sealed class PhotoDto
+{
+    public Guid Id { get; set; }
+    public string OwnerKind { get; set; } = string.Empty;
+    public Guid OwnerId { get; set; }
+    public string? Caption { get; set; }
+    public string OriginalFileName { get; set; } = string.Empty;
+    public string ContentType { get; set; } = string.Empty;
+    public long FileSizeBytes { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+}
+
+public sealed class AccidentWriteRequest
+{
+    [Required]
+    public DateTimeOffset OccurredOn { get; set; }
+
+    [Required, StringLength(200, MinimumLength = 2)]
+    public string Location { get; set; } = string.Empty;
+
+    [Required]
+    public AccidentSeverity Severity { get; set; }
+
+    public AccidentStatus Status { get; set; } = AccidentStatus.Open;
+
+    [Required, StringLength(4000, MinimumLength = 4)]
+    public string Description { get; set; } = string.Empty;
+
+    [StringLength(200)]
+    public string? InjuredPerson { get; set; }
+
+    [StringLength(2000)]
+    public string? ImmediateAction { get; set; }
+
+    [Range(0, 10000)]
+    public decimal LostHours { get; set; }
+}
+
+public sealed class AccidentDto
+{
+    public Guid Id { get; set; }
+    public DateTimeOffset OccurredOn { get; set; }
+    public string Location { get; set; } = string.Empty;
+    public string Severity { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string? InjuredPerson { get; set; }
+    public string? ImmediateAction { get; set; }
+    public decimal LostHours { get; set; }
+    public int PhotoCount { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset UpdatedAt { get; set; }
+}
+
+public sealed class LostHoursWriteRequest
+{
+    [Required]
+    public DateTimeOffset OccurredOn { get; set; }
+
+    [Range(0.25, 10000)]
+    public decimal Hours { get; set; }
+
+    [Required, StringLength(300, MinimumLength = 2)]
+    public string Reason { get; set; } = string.Empty;
+
+    public Guid? AccidentId { get; set; }
+
+    [StringLength(2000)]
+    public string? Notes { get; set; }
+}
+
+public sealed class LostHoursDto
+{
+    public Guid Id { get; set; }
+    public Guid? AccidentId { get; set; }
+    public DateTimeOffset OccurredOn { get; set; }
+    public decimal Hours { get; set; }
+    public string Reason { get; set; } = string.Empty;
+    public string? Notes { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+}
+
+public sealed class LostHoursSummaryDto
+{
+    public decimal TotalHours { get; set; }
+    public IReadOnlyList<LostHoursDto> Entries { get; set; } = Array.Empty<LostHoursDto>();
+}
+
+public sealed class EquipmentWriteRequest
+{
+    [Required, StringLength(200, MinimumLength = 2)]
+    public string Name { get; set; } = string.Empty;
+
+    [Required, StringLength(80, MinimumLength = 2)]
+    public string Category { get; set; } = string.Empty;
+
+    [StringLength(80)]
+    public string? SerialNumber { get; set; }
+
+    public DateTimeOffset? CalibrationDueOn { get; set; }
+    public DateTimeOffset? ServiceDueOn { get; set; }
+
+    [StringLength(2000)]
+    public string? Notes { get; set; }
+}
+
+public sealed class EquipmentDto
+{
+    public Guid Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string Category { get; set; } = string.Empty;
+    public string? SerialNumber { get; set; }
+    public DateTimeOffset? CalibrationDueOn { get; set; }
+    public DateTimeOffset? ServiceDueOn { get; set; }
+    public string? Notes { get; set; }
+    public bool IsOverdue { get; set; }
+    public string TrafficLight { get; set; } = string.Empty;
+    public int PhotoCount { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset UpdatedAt { get; set; }
+}
+
+public sealed class QuestionnaireQuestionDto
+{
+    public string Id { get; set; } = string.Empty;
+    public string Prompt { get; set; } = string.Empty;
+    public string Help { get; set; } = string.Empty;
+    public string Kind { get; set; } = "text";
+    public bool Required { get; set; } = true;
+}
+
+public sealed class QuestionnaireTemplateDto
+{
+    public string SchemeCode { get; set; } = string.Empty;
+    public string SchemeName { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;
+    public string Introduction { get; set; } = string.Empty;
+    public int QuestionCount { get; set; }
+    public Guid? LatestResponseId { get; set; }
+    public DateTimeOffset? LatestGeneratedAt { get; set; }
+    public IReadOnlyList<QuestionnaireQuestionDto> Questions { get; set; } = Array.Empty<QuestionnaireQuestionDto>();
+}
+
+public sealed class QuestionnaireAnswerRequest
+{
+    public Dictionary<string, string?> Answers { get; set; } = new();
+    public bool Generate { get; set; } = true;
+}
+
+public sealed class QuestionnaireExportRequest
+{
+    public string[]? SchemeCodes { get; set; }
+}
+
+public sealed class QuestionnaireResponseDto
+{
+    public Guid Id { get; set; }
+    public string SchemeCode { get; set; } = string.Empty;
+    public string SchemeName { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public Dictionary<string, string?> Answers { get; set; } = new();
+    public string? GeneratedMarkdown { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset UpdatedAt { get; set; }
+}
+

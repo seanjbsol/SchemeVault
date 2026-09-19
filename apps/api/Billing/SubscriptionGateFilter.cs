@@ -33,12 +33,16 @@ public sealed class SubscriptionGateFilter : IAsyncActionFilter
         }
 
         var client = context.HttpContext.RequestServices.GetRequiredService<ISubscriptionClient>();
+        var options = context.HttpContext.RequestServices.GetRequiredService<Microsoft.Extensions.Options.IOptions<SubscriptionApiOptions>>().Value;
         var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<SubscriptionGateFilter>>();
 
         EntitlementsDto entitlements;
         try
         {
-            entitlements = await client.GetEntitlementsAsync(current.TenantId, context.HttpContext.RequestAborted);
+            entitlements = EntitlementsNormalizer.Apply(
+                await client.GetEntitlementsAsync(current.TenantId, context.HttpContext.RequestAborted),
+                options);
+            context.HttpContext.Items[EntitlementsNormalizer.HttpItemKey] = entitlements;
         }
         catch (Exception ex) when (ex is HttpRequestException or InvalidOperationException or TaskCanceledException)
         {

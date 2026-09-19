@@ -8,6 +8,8 @@ public sealed class EntitlementsDto
     public string? Plan { get; set; }
     public string? PlanCode { get; set; }
     public bool IsActive { get; set; }
+    public bool IsPro { get; set; }
+    public string[] Features { get; set; } = [];
     public DateTimeOffset? TrialEndsAt { get; set; }
     public DateTimeOffset? CurrentPeriodEnd { get; set; }
 
@@ -18,13 +20,14 @@ public sealed class EntitlementsDto
         StatusEquals("trialing") ||
         StatusEquals("trial");
 
-    public static EntitlementsDto Create(string status, string? plan, string? planCode = null)
+    public static EntitlementsDto Create(string status, string? plan, string? planCode = null, string[]? features = null)
     {
         var dto = new EntitlementsDto
         {
             Status = string.IsNullOrWhiteSpace(status) ? "inactive" : status,
             Plan = plan,
-            PlanCode = planCode
+            PlanCode = planCode,
+            Features = features ?? []
         };
         dto.IsActive = dto.IsActiveOrTrialing;
         return dto;
@@ -52,6 +55,8 @@ public sealed class PaymentRequiredBody
     public int Status { get; set; } = StatusCodes.Status402PaymentRequired;
     public string SubscriptionStatus { get; set; } = "inactive";
     public string? Plan { get; set; }
+    public string? RequiredPlan { get; set; }
+    public string? Feature { get; set; }
     public string Checkout { get; set; } = "/api/billing/checkout";
     public string Detail { get; set; } =
         "POST /api/billing/checkout (Owner/Admin) to start or resume billing. Do not call Stripe from SchemeVault.";
