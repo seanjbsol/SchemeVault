@@ -1,3 +1,4 @@
+using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -6,9 +7,11 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 using SchemeVault.Api.Auth;
+using SchemeVault.Api.Billing;
 using SchemeVault.Api.Data;
 using SchemeVault.Api.Domain;
 using SchemeVault.Api.Services;
@@ -40,6 +43,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services
     .AddIdentityCore<ApplicationUser>(options =>
     {
+        options.Stores.SchemaVersion = IdentitySchemaVersions.Version3;
         options.User.RequireUniqueEmail = true;
         options.Password.RequiredLength = 8;
         options.Password.RequireNonAlphanumeric = false;
@@ -76,12 +80,19 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 builder.Services.AddAuthorization();
+builder.Services.Configure<SubscriptionApiOptions>(
+    builder.Configuration.GetSection(SubscriptionApiOptions.SectionName));
+builder.Services.AddScoped<BillingService>();
+builder.Services.AddScoped<SubscriptionGateFilter>();
+RegisterSubscriptionClient(builder);
+
 builder.Services.AddControllers(options =>
     {
         var policy = new AuthorizationPolicyBuilder()
             .RequireAuthenticatedUser()
             .Build();
         options.Filters.Add(new AuthorizeFilter(policy));
+        options.Filters.AddService<SubscriptionGateFilter>();
     })
     .AddJsonOptions(options =>
     {
@@ -106,15 +117,9 @@ builder.Services.AddSwaggerGen(options =>
         Scheme = "bearer",
         BearerFormat = "JWT"
     });
-    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
     {
-        {
-            new OpenApiSecurityScheme
-            {
-                Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
-            },
-            Array.Empty<string>()
-        }
+        [new OpenApiSecuritySchemeReference("Bearer", document)] = []
     });
 });
 
@@ -213,5 +218,30 @@ if (!app.Environment.IsEnvironment("Testing"))
 }
 
 app.Run();
+
+static void RegisterSubscriptionClient(WebApplicationBuilder builder)
+{
+    var subscription = builder.Configuration.GetSection(SubscriptionApiOptions.SectionName)
+        .Get<SubscriptionApiOptions>() ?? new SubscriptionApiOptions();
+
+    if (subscription.UseStub)
+    {
+        builder.Services.AddSingleton<ISubscriptionClient, StubSubscriptionClient>();
+        return;
+    }
+
+    builder.Services.AddHttpClient<ISubscriptionClient, SubscriptionClient>((sp, client) =>
+    {
+        var opts = sp.GetRequiredService<IOptions<SubscriptionApiOptions>>().Value;
+        if (!string.IsNullOrWhiteSpace(opts.BaseUrl) &&
+            Uri.TryCreate(opts.BaseUrl.TrimEnd('/') + "/", UriKind.Absolute, out var baseUri))
+        {
+            client.BaseAddress = baseUri;
+        }
+
+        client.Timeout = TimeSpan.FromSeconds(15);
+        client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+    });
+}
 
 public partial class Program;

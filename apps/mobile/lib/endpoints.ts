@@ -1,7 +1,9 @@
 import { api } from '@/lib/api';
 import type {
   AuthResponse,
+  BillingSession,
   Dashboard,
+  Entitlements,
   Evidence,
   Renewal,
   SchemeDetail,
@@ -33,4 +35,9 @@ export const endpoints = {
   }) => api<Renewal>('/api/renewals', { method: 'POST', body }),
   tenant: () => api<Tenant>('/api/tenants/current'),
   updateTenant: (name: string) => api<Tenant>('/api/tenants/current', { method: 'PATCH', body: { name } }),
+  entitlements: () => api<Entitlements>('/api/billing/entitlements'),
+  billingCheckout: (body: { successUrl: string; cancelUrl: string }) =>
+    api<BillingSession>('/api/billing/checkout', { method: 'POST', body }),
+  billingPortal: (body: { returnUrl: string }) =>
+    api<BillingSession>('/api/billing/portal', { method: 'POST', body }),
 };

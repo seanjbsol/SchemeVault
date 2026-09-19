@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using SchemeVault.Api.Auth;
+using SchemeVault.Api.Billing;
 using SchemeVault.Api.Contracts;
 using SchemeVault.Api.Data;
 using SchemeVault.Api.Domain;
@@ -13,13 +15,26 @@ public sealed class AuthService
     private readonly UserManager<ApplicationUser> _users;
     private readonly JwtTokenService _jwt;
     private readonly ICurrentUser _current;
+    private readonly ISubscriptionClient _subscriptions;
+    private readonly SubscriptionApiOptions _subscriptionOptions;
+    private readonly ILogger<AuthService> _logger;
 
-    public AuthService(AppDbContext db, UserManager<ApplicationUser> users, JwtTokenService jwt, ICurrentUser current)
+    public AuthService(
+        AppDbContext db,
+        UserManager<ApplicationUser> users,
+        JwtTokenService jwt,
+        ICurrentUser current,
+        ISubscriptionClient subscriptions,
+        IOptions<SubscriptionApiOptions> subscriptionOptions,
+        ILogger<AuthService> logger)
     {
         _db = db;
         _users = users;
         _jwt = jwt;
         _current = current;
+        _subscriptions = subscriptions;
+        _subscriptionOptions = subscriptionOptions.Value;
+        _logger = logger;
     }
 
     public async Task<AuthResponse> RegisterAsync(RegisterRequest request, CancellationToken ct)
@@ -68,6 +83,7 @@ public sealed class AuthService
         });
         await _db.SaveChangesAsync(ct);
         await SeedData.ProvisionTenantGapsAsync(_db, tenant.Id, now);
+        await UpsertQckTenantAsync(tenant, email, ct);
 
         var (token, expires) = _jwt.Create(user, MembershipRole.Owner, tenant.Name);
         return new AuthResponse
@@ -108,5 +124,26 @@ public sealed class AuthService
                    ?? throw new UnauthorizedAccessException("Not signed in.");
         var tenant = await _db.Tenants.IgnoreQueryFilters().FirstAsync(t => t.Id == user.TenantId, ct);
         return user.ToDto(tenant.Name, _current.Role);
+    }
+
+    private async Task UpsertQckTenantAsync(Tenant tenant, string ownerEmail, CancellationToken ct)
+    {
+        try
+        {
+            await _subscriptions.UpsertTenantAsync(new QckUpsertTenantRequest
+            {
+                Name = tenant.Name,
+                OwnerEmail = ownerEmail,
+                ExternalTenantId = tenant.Id.ToString("D"),
+                ProductCode = _subscriptionOptions.ProductCode
+            }, ct);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or InvalidOperationException or TaskCanceledException)
+        {
+            _logger.LogWarning(
+                ex,
+                "Qck tenant upsert failed for {TenantId}; local registration still succeeded",
+                tenant.Id);
+        }
     }
 }

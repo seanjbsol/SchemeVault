@@ -1,6 +1,8 @@
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using Microsoft.Extensions.DependencyInjection;
 using SchemeVault.Api.Auth;
 using SchemeVault.Api.Domain;
 
@@ -29,6 +31,12 @@ public class AppDbContext : Microsoft.AspNetCore.Identity.EntityFrameworkCore.Id
     public DbSet<EvidenceItem> EvidenceItems => Set<EvidenceItem>();
     public DbSet<Accreditation> Accreditations => Set<Accreditation>();
     public DbSet<GapChecklistItem> GapChecklistItems => Set<GapChecklistItem>();
+
+    /// <summary>
+    /// Identity 10 passkeys (schema v3). Forced here so design-time and tests that
+    /// rebuild <see cref="DbContextOptions"/> still get a valid model.
+    /// </summary>
+    protected override Version SchemaVersion => IdentitySchemaVersions.Version3;
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -113,14 +121,12 @@ public class AppDbContext : Microsoft.AspNetCore.Identity.EntityFrameworkCore.Id
             var converter = new DateTimeOffsetToBinaryConverter();
             foreach (var entityType in builder.Model.GetEntityTypes())
             {
-                var properties = entityType.ClrType
-                    .GetProperties()
-                    .Where(p => p.PropertyType == typeof(DateTimeOffset) || p.PropertyType == typeof(DateTimeOffset?));
-                foreach (var property in properties)
+                foreach (var property in entityType.GetProperties())
                 {
-                    builder.Entity(entityType.ClrType)
-                        .Property(property.Name)
-                        .HasConversion(converter);
+                    if (property.ClrType == typeof(DateTimeOffset) || property.ClrType == typeof(DateTimeOffset?))
+                    {
+                        property.SetValueConverter(converter);
+                    }
                 }
             }
         }
@@ -132,8 +138,13 @@ public sealed class AppDbContextFactory : IDesignTimeDbContextFactory<AppDbConte
 {
     public AppDbContext CreateDbContext(string[] args)
     {
+        var services = new ServiceCollection();
+        services.Configure<IdentityOptions>(options =>
+            options.Stores.SchemaVersion = IdentitySchemaVersions.Version3);
+        var provider = services.BuildServiceProvider();
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseSqlite("Data Source=schemevault.dev.db")
+            .UseApplicationServiceProvider(provider)
             .Options;
         return new AppDbContext(options, new NullTenantProvider());
     }

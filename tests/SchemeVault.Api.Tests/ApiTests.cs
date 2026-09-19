@@ -10,9 +10,12 @@ using SchemeVault.Api.Data;
 
 namespace SchemeVault.Api.Tests;
 
-public sealed class ApiFactory : WebApplicationFactory<Program>
+public class ApiFactory : WebApplicationFactory<Program>
 {
     private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"schemevault-tests-{Guid.NewGuid():N}.db");
+
+    protected virtual string StubStatus => "active";
+    protected virtual string StubPlan => "Starter";
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -23,11 +26,19 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
         builder.UseSetting("Jwt:ExpiryMinutes", "60");
         builder.UseSetting("Database:Provider", "Sqlite");
         builder.UseSetting("ConnectionStrings:Default", $"Data Source={_dbPath}");
+        builder.UseSetting("SubscriptionApi:UseStub", "true");
+        builder.UseSetting("SubscriptionApi:ProductCode", "SchemeVault");
+        builder.UseSetting("SubscriptionApi:StubStatus", StubStatus);
+        builder.UseSetting("SubscriptionApi:StubPlan", StubPlan);
 
         builder.ConfigureServices(services =>
         {
             RemoveDbContext(services);
-            services.AddDbContext<AppDbContext>(options => options.UseSqlite($"Data Source={_dbPath}"));
+            services.AddDbContext<AppDbContext>((sp, options) =>
+            {
+                options.UseSqlite($"Data Source={_dbPath}");
+                options.UseApplicationServiceProvider(sp);
+            });
         });
     }
 
@@ -76,11 +87,13 @@ public abstract class ApiTestBase : IAsyncLifetime
 {
     protected ApiFactory Factory { get; } = new();
     protected HttpClient Client { get; private set; } = null!;
-    protected static readonly JsonSerializerOptions Json = new()
+    internal static readonly JsonSerializerOptions SharedJson = new()
     {
         PropertyNameCaseInsensitive = true,
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase
     };
+
+    protected static JsonSerializerOptions Json => SharedJson;
 
     public async Task InitializeAsync()
     {
@@ -329,5 +342,137 @@ public class VerticalSliceTests : ApiTestBase
         var list = await Client.SendAsync(Authed(HttpMethod.Get, "/api/renewals", auth));
         var listBody = await list.Content.ReadAsStringAsync();
         Assert.Contains("Pack in progress", listBody, StringComparison.Ordinal);
+    }
+}
+
+public sealed class InactiveSubscriptionApiFactory : ApiFactory
+{
+    protected override string StubStatus => "canceled";
+}
+
+public abstract class InactiveSubscriptionTestBase : IAsyncLifetime
+{
+    protected InactiveSubscriptionApiFactory Factory { get; } = new();
+    protected HttpClient Client { get; private set; } = null!;
+    protected static readonly JsonSerializerOptions Json = ApiTestBase.SharedJson;
+
+    public async Task InitializeAsync()
+    {
+        Client = Factory.CreateClient();
+        await Factory.ResetDatabaseAsync();
+    }
+
+    public Task DisposeAsync()
+    {
+        Client.Dispose();
+        Factory.Dispose();
+        return Task.CompletedTask;
+    }
+}
+
+public class BillingStubTests : ApiTestBase
+{
+    [Fact]
+    public async Task Entitlements_in_stub_mode_are_active_starter()
+    {
+        var auth = await RegisterAsync("Fenland Billing Ltd", "billing@fenland.test");
+        var response = await Client.SendAsync(Authed(HttpMethod.Get, "/api/billing/entitlements", auth));
+        response.EnsureSuccessStatusCode();
+        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.Equal("active", doc.RootElement.GetProperty("status").GetString(), ignoreCase: true);
+        Assert.Equal("Starter", doc.RootElement.GetProperty("plan").GetString());
+        Assert.True(doc.RootElement.GetProperty("isActive").GetBoolean());
+    }
+
+    [Fact]
+    public async Task Owner_can_open_stub_checkout_and_portal_urls()
+    {
+        var auth = await RegisterAsync("Humber Billing Ltd", "owner@humber-billing.test");
+
+        var checkout = Authed(HttpMethod.Post, "/api/billing/checkout", auth);
+        checkout.Content = JsonContent.Create(new
+        {
+            successUrl = "https://schemevault.test/billing/success",
+            cancelUrl = "https://schemevault.test/billing/cancel"
+        });
+        var checkoutResponse = await Client.SendAsync(checkout);
+        checkoutResponse.EnsureSuccessStatusCode();
+        using var checkoutDoc = JsonDocument.Parse(await checkoutResponse.Content.ReadAsStringAsync());
+        Assert.Equal(
+            SchemeVault.Api.Billing.StubSubscriptionClient.CheckoutUrl,
+            checkoutDoc.RootElement.GetProperty("url").GetString());
+
+        var portal = Authed(HttpMethod.Post, "/api/billing/portal", auth);
+        portal.Content = JsonContent.Create(new { returnUrl = "https://schemevault.test/settings" });
+        var portalResponse = await Client.SendAsync(portal);
+        portalResponse.EnsureSuccessStatusCode();
+        using var portalDoc = JsonDocument.Parse(await portalResponse.Content.ReadAsStringAsync());
+        Assert.Equal(
+            SchemeVault.Api.Billing.StubSubscriptionClient.PortalUrl,
+            portalDoc.RootElement.GetProperty("url").GetString());
+    }
+}
+
+public class SubscriptionGateTests : InactiveSubscriptionTestBase
+{
+    [Fact]
+    public async Task Inactive_subscription_returns_402_with_checkout_pointer()
+    {
+        var register = await Client.PostAsJsonAsync("/api/auth/register", new
+        {
+            organisationName = "Past Due Plant Ltd",
+            fullName = "Test User",
+            email = "pastdue@schemevault.test",
+            password = "TestPassw0rd!"
+        });
+        register.EnsureSuccessStatusCode();
+        var auth = await register.Content.ReadFromJsonAsync<AuthPayload>(Json);
+        Assert.NotNull(auth);
+
+        var request = new HttpRequestMessage(HttpMethod.Get, "/api/evidence");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", auth!.AccessToken);
+        var evidence = await Client.SendAsync(request);
+        Assert.Equal(HttpStatusCode.PaymentRequired, evidence.StatusCode);
+        var body = await evidence.Content.ReadAsStringAsync();
+        Assert.Contains("/api/billing/checkout", body, StringComparison.Ordinal);
+        Assert.Contains("canceled", body, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task Billing_and_auth_remain_available_when_subscription_is_inactive()
+    {
+        var register = await Client.PostAsJsonAsync("/api/auth/register", new
+        {
+            organisationName = "Lapsed Scaffolding Ltd",
+            fullName = "Test User",
+            email = "lapsed@schemevault.test",
+            password = "TestPassw0rd!"
+        });
+        register.EnsureSuccessStatusCode();
+        var auth = await register.Content.ReadFromJsonAsync<AuthPayload>(Json);
+        Assert.NotNull(auth);
+
+        var me = new HttpRequestMessage(HttpMethod.Get, "/api/auth/me");
+        me.Headers.Authorization = new AuthenticationHeaderValue("Bearer", auth!.AccessToken);
+        var meResponse = await Client.SendAsync(me);
+        meResponse.EnsureSuccessStatusCode();
+
+        var entitlements = new HttpRequestMessage(HttpMethod.Get, "/api/billing/entitlements");
+        entitlements.Headers.Authorization = new AuthenticationHeaderValue("Bearer", auth.AccessToken);
+        var entitlementsResponse = await Client.SendAsync(entitlements);
+        entitlementsResponse.EnsureSuccessStatusCode();
+        using var doc = JsonDocument.Parse(await entitlementsResponse.Content.ReadAsStringAsync());
+        Assert.Equal("canceled", doc.RootElement.GetProperty("status").GetString(), ignoreCase: true);
+        Assert.False(doc.RootElement.GetProperty("isActive").GetBoolean());
+
+        var checkout = new HttpRequestMessage(HttpMethod.Post, "/api/billing/checkout");
+        checkout.Headers.Authorization = new AuthenticationHeaderValue("Bearer", auth.AccessToken);
+        checkout.Content = JsonContent.Create(new
+        {
+            successUrl = "https://schemevault.test/ok",
+            cancelUrl = "https://schemevault.test/cancel"
+        });
+        var checkoutResponse = await Client.SendAsync(checkout);
+        checkoutResponse.EnsureSuccessStatusCode();
     }
 }

@@ -1,11 +1,13 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SchemeVault.Api.Billing;
 using SchemeVault.Api.Contracts;
 using SchemeVault.Api.Services;
 
 namespace SchemeVault.Api.Controllers;
 
 [ApiController]
+[SkipSubscription]
 [Route("api/auth")]
 public sealed class AuthController : ControllerBase
 {

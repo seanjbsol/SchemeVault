@@ -55,6 +55,10 @@ export async function api<T>(path: string, options: Options = {}): Promise<T> {
   const data = text ? safeJson(text) : null;
 
   if (!response.ok) {
+    if (response.status === 402) {
+      const title = readTitle(data) ?? 'An active SchemeVault subscription is required.';
+      throw new ApiError(title, response.status);
+    }
     const title = readTitle(data) ?? `Request failed (${response.status})`;
     throw new ApiError(title, response.status);
   }

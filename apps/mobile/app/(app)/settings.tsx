@@ -1,10 +1,11 @@
-import { useState } from 'react';
-import { ScrollView, StyleSheet, Text } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { Linking, ScrollView, StyleSheet, Text } from 'react-native';
 import { Card, ErrorBanner, Field, GhostButton, PrimaryButton, Screen } from '@/components/ui';
 import { apiBaseUrl, ApiError } from '@/lib/api';
 import { endpoints } from '@/lib/endpoints';
 import { useAuth } from '@/lib/auth';
 import { colours } from '@/lib/theme';
+import type { Entitlements } from '@/lib/types';
 
 export default function SettingsScreen() {
   const { user, signOut, setUser } = useAuth();
@@ -12,7 +13,22 @@ export default function SettingsScreen() {
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [entitlements, setEntitlements] = useState<Entitlements | null>(null);
+  const [billingBusy, setBillingBusy] = useState(false);
   const canRename = user?.role === 'Owner' || user?.role === 'Admin';
+  const canBill = canRename;
+
+  const loadEntitlements = useCallback(async () => {
+    try {
+      setEntitlements(await endpoints.entitlements());
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not load billing status.');
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadEntitlements();
+  }, [loadEntitlements]);
 
   async function save() {
     setError(null);
@@ -35,6 +51,35 @@ export default function SettingsScreen() {
     }
   }
 
+  async function openBilling() {
+    if (!canBill) {
+      setError('Only an Owner or Admin can manage billing.');
+      return;
+    }
+    setError(null);
+    setBillingBusy(true);
+    try {
+      const returnUrl = 'https://schemevault.app/settings';
+      const session = entitlements?.isActive
+        ? await endpoints.billingPortal({ returnUrl })
+        : await endpoints.billingCheckout({ successUrl: returnUrl, cancelUrl: returnUrl });
+      const opened = await Linking.openURL(session.url);
+      if (!opened) {
+        setError('Could not open the billing page. Copy the URL from support if this continues.');
+      }
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not start billing.');
+    } finally {
+      setBillingBusy(false);
+    }
+  }
+
+  const planLabel = entitlements?.plan ?? 'Unknown';
+  const statusLabel = entitlements?.status
+    ? entitlements.status.charAt(0).toUpperCase() + entitlements.status.slice(1)
+    : 'Loading…';
+  const billingTitle = entitlements?.isActive ? 'Manage billing' : 'Upgrade';
+
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.content}>
@@ -44,6 +89,17 @@ export default function SettingsScreen() {
         </Text>
         <ErrorBanner message={error} />
         {saved ? <Text style={styles.ok}>Organisation name saved.</Text> : null}
+        <Card>
+          <Text style={styles.rowLabel}>Plan</Text>
+          <Text style={styles.rowValue}>{planLabel}</Text>
+          <Text style={styles.rowLabel}>Subscription</Text>
+          <Text style={styles.rowValue}>{statusLabel}</Text>
+          {canBill ? (
+            <PrimaryButton title={billingTitle} onPress={() => void openBilling()} loading={billingBusy} />
+          ) : (
+            <Text style={styles.hint}>Ask an Owner or Admin to manage billing for this organisation.</Text>
+          )}
+        </Card>
         <Card>
           <Field label="Organisation name" value={name} onChangeText={setName} autoCapitalize="words" editable={canRename} />
           {canRename ? <PrimaryButton title="Save name" onPress={save} loading={saving} /> : null}
@@ -68,4 +124,5 @@ const styles = StyleSheet.create({
   ok: { color: colours.green, fontWeight: '700', marginBottom: 12 },
   rowLabel: { color: colours.muted, fontSize: 12, fontWeight: '700', marginTop: 8 },
   rowValue: { color: colours.navy, fontSize: 15, fontWeight: '600' },
+  hint: { color: colours.muted, marginTop: 12, lineHeight: 20 },
 });

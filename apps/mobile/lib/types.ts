@@ -90,3 +90,16 @@ export type Tenant = {
   id: string;
   name: string;
 };
+
+export type Entitlements = {
+  status: string;
+  plan?: string | null;
+  planCode?: string | null;
+  isActive: boolean;
+  trialEndsAt?: string | null;
+  currentPeriodEnd?: string | null;
+};
+
+export type BillingSession = {
+  url: string;
+};

@@ -55,3 +55,26 @@ Content-Type: application/json
 ### Renewals
 GET {{host}}/api/renewals
 Authorization: Bearer {{token}}
+
+### Billing entitlements
+GET {{host}}/api/billing/entitlements
+Authorization: Bearer {{token}}
+
+### Create checkout session (Owner/Admin)
+POST {{host}}/api/billing/checkout
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "successUrl": "https://schemevault.app/billing/success",
+  "cancelUrl": "https://schemevault.app/billing/cancel"
+}
+
+### Customer portal session (Owner/Admin)
+POST {{host}}/api/billing/portal
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "returnUrl": "https://schemevault.app/settings"
+}
